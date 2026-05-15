@@ -10,7 +10,6 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Minhas tarefas</Text>
-
       <View style={styles.inputRow}>
         <TextInput style={styles.input} placeholder="Digite uma tarefa" />
         <Button
