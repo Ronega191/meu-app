@@ -1,31 +1,49 @@
-import { Alert, Button, FlatList, StyleSheet, Text, TextInput, View } from "react-native";
-
-const tarefas = [
-  { id: 1, titulo: "Comprar leite" },
-  { id: 2, titulo: "Estudar React Native" },
-  { id: 3, titulo: "Fazer exercícios" },
-];
+import { useState } from "react";
+import { Button, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function Index() {
+  const [tarefas, setTarefas] = useState<{ id: number; titulo: string; concluido: boolean }[]>([]);
+  const [novaTarefa, setNovaTarefa] = useState("");
+
+  function adicionarTarefa() {
+    setTarefas((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        titulo: novaTarefa,
+        concluido: false,
+      },
+    ]);
+    setNovaTarefa("");
+  }
+
+  function toggleTarefa(id: number) {
+    setTarefas((prev) =>
+      prev.map((tarefa) => (tarefa.id === id ? { ...tarefa, concluido: !tarefa.concluido } : tarefa)),
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Minhas tarefas</Text>
       <View style={styles.inputRow}>
-        <TextInput style={styles.input} placeholder="Digite uma tarefa" />
-        <Button
-          title="Adicionar"
-          onPress={() => Alert.alert("Adicionar tarefa", "Vamos implementar isso no próxima aula")}
+        <TextInput
+          style={styles.input}
+          placeholder="Digite uma tarefa"
+          value={novaTarefa}
+          onChangeText={setNovaTarefa}
         />
+        <Button title="Adicionar" onPress={adicionarTarefa} />
       </View>
 
       <FlatList
         data={tarefas}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View style={styles.itemRow}>
-            <View style={styles.checkbox} />
-            <Text style={styles.itemText}>{item.titulo}</Text>
-          </View>
+          <Pressable style={styles.itemRow} onPress={() => toggleTarefa(item.id)}>
+            <View style={[styles.checkbox, item.concluido && styles.checkboxConcluido]} />
+            <Text style={[styles.itemText, item.concluido && styles.itemTextConcluido]}>{item.titulo}</Text>
+          </Pressable>
         )}
       />
     </View>
@@ -75,5 +93,13 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontSize: 18,
+  },
+  checkboxConcluido: {
+    backgroundColor: "#4caf50",
+    borderColor: "#4caf50",
+  },
+  itemTextConcluido: {
+    textDecorationLine: "line-through",
+    color: "#777",
   },
 });
