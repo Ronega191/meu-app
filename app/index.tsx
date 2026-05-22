@@ -1,9 +1,24 @@
-import { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
 import { Button, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function Index() {
   const [tarefas, setTarefas] = useState<{ id: number; titulo: string; concluido: boolean }[]>([]);
   const [novaTarefa, setNovaTarefa] = useState("");
+
+  useEffect(() => {
+    const carregarTarefas = async () => {
+      const tarefasSalvas = await AsyncStorage.getItem("tarefas");
+      if (tarefasSalvas) {
+        setTarefas(JSON.parse(tarefasSalvas));
+      }
+    };
+    carregarTarefas();
+  }, []);
+
+  useEffect(() => {
+    AsyncStorage.setItem("tarefas", JSON.stringify(tarefas));
+  }, [tarefas]);
 
   function adicionarTarefa() {
     setTarefas((prev) => [
