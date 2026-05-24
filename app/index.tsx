@@ -5,7 +5,7 @@ import { Button, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "
 export default function Index() {
   const [tarefas, setTarefas] = useState<{ id: number; titulo: string; concluido: boolean }[]>([]);
   const [novaTarefa, setNovaTarefa] = useState("");
-
+  const [filtrocl, setFiltrocl] = useState<"concluidas" | "pendentes" | "todas">("todas");
   useEffect(() => {
     const carregarTarefas = async () => {
       const tarefasSalvas = await AsyncStorage.getItem("tarefas");
@@ -19,6 +19,16 @@ export default function Index() {
   useEffect(() => {
     AsyncStorage.setItem("tarefas", JSON.stringify(tarefas));
   }, [tarefas]);
+
+  function filtrarcocluida() {
+    if (filtrocl === "concluidas") {
+      return tarefas.filter((t) => t.concluido);
+    }
+    if (filtrocl === "pendentes") {
+      return tarefas.filter((t) => !t.concluido);
+    }
+    return tarefas;
+  }
 
   function adicionarTarefa() {
     setTarefas((prev) => [
@@ -50,9 +60,15 @@ export default function Index() {
         />
         <Button title="Adicionar" onPress={adicionarTarefa} />
       </View>
+      
+      <View style={styles.inputRow}>
+        <Button title="todas" onPress={() => setFiltrocl("todas")} />
+        <Button title="concluídas" onPress={() => setFiltrocl("concluidas")} />
+        <Button title="pendentes" onPress={() => setFiltrocl("pendentes")} />
+      </View>
 
       <FlatList
-        data={tarefas}
+        data={filtrarcocluida()}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <Pressable style={styles.itemRow} onPress={() => toggleTarefa(item.id)}>
