@@ -1,26 +1,40 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
+import * as sqlite from "expo-sqlite";
+import { useEffect, useMemo, useState } from "react";
 import { Button, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+
+const db = sqlite.openDatabaseSync("tarefas.db");
 
 export default function Index() {
   const [tarefas, setTarefas] = useState<{ id: number; titulo: string; concluido: boolean }[]>([]);
   const [novaTarefa, setNovaTarefa] = useState("");
   const [filtrocl, setFiltrocl] = useState<"concluidas" | "pendentes" | "todas">("todas");
+
   useEffect(() => {
-    const carregarTarefas = async () => {
-      const tarefasSalvas = await AsyncStorage.getItem("tarefas");
-      if (tarefasSalvas) {
-        setTarefas(JSON.parse(tarefasSalvas));
-      }
-    };
+    db.execAsync(`CREATE TABLE IF NOT EXISTS tarefas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, 
+      titulo TEXT, 
+      concluido INTEGER not null default 0
+      )`
+    );
     carregarTarefas();
   }, []);
 
+  function carregarTarefas() {
+    const resultado = db.getAllSync<{ id: number; titulo: string; concluido: number }>("SELECT * FROM tarefas");
+    setTarefas(
+      resultado.map((tarefas) => ({
+        id: tarefas.id,
+        titulo: tarefas.titulo,
+        concluido: tarefas.concluido === 1,
+      }))
+    )
+  }
+
   useEffect(() => {
-    AsyncStorage.setItem("tarefas", JSON.stringify(tarefas));
+    db.runSync("insert into tarefas (titulo, concluido) values (?, ?)", [novaTarefa, 0]);
   }, [tarefas]);
 
-  function filtrarcocluida() {
+ const listafiltro = useMemo(() => {
     if (filtrocl === "concluidas") {
       return tarefas.filter((t) => t.concluido);
     }
@@ -28,25 +42,28 @@ export default function Index() {
       return tarefas.filter((t) => !t.concluido);
     }
     return tarefas;
-  }
+  }, [filtrocl, tarefas]);
+
 
   function adicionarTarefa() {
-    setTarefas((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        titulo: novaTarefa,
-        concluido: false,
-      },
-    ]);
+    db.runSync("insert into tarefas (titulo, concluido) values (?, ?)", [novaTarefa, 0]);
     setNovaTarefa("");
   }
 
   function toggleTarefa(id: number) {
-    setTarefas((prev) =>
-      prev.map((tarefa) => (tarefa.id === id ? { ...tarefa, concluido: !tarefa.concluido } : tarefa)),
-    );
+    const tarefa = tarefas.find((titem) => titem.id === id);
+    db.runSync(
+      "update tarefas set concluido = ? where id = ?", [tarefa?.concluido ? 0 : 1, id]);
+    carregarTarefas();
   }
+
+  function excluirTarefa(id: number) {
+    const tarefa = tarefas.find((titem) => titem.id === id);
+    db.runSync(
+      "delete from tarefas set concluido =? where id = ?", [tarefa?.concluido ? 0 : 1, id]);
+    carregarTarefas();
+  }
+
 
   return (
     <View style={styles.container}>
@@ -62,19 +79,22 @@ export default function Index() {
       </View>
       
       <View style={styles.inputRow}>
-        <Button title="todas" onPress={() => setFiltrocl("todas")} />
+        <Button title="todas" onPress={() => setFiltrocl("todas") } />
         <Button title="concluídas" onPress={() => setFiltrocl("concluidas")} />
         <Button title="pendentes" onPress={() => setFiltrocl("pendentes")} />
       </View>
 
       <FlatList
-        data={filtrarcocluida()}
+        data={listafiltro}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
+          <view>
           <Pressable style={styles.itemRow} onPress={() => toggleTarefa(item.id)}>
             <View style={[styles.checkbox, item.concluido && styles.checkboxConcluido]} />
             <Text style={[styles.itemText, item.concluido && styles.itemTextConcluido]}>{item.titulo}</Text>
           </Pressable>
+          <Button title="Excluir" onPress={() => {excluirTarefa(item.id);}} />
+          </view>
         )}
       />
     </View>
